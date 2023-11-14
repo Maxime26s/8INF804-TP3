@@ -71,7 +71,6 @@ def setup_data_loaders(data_dir, batch_size, num_workers):
         ]
     )
 
-    flatten_image_folder(data_dir)
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
 
     total_size = len(dataset)
@@ -133,9 +132,9 @@ def plot_learning_curves(train_acc_history, val_acc_history, run):
     plt.plot(val_acc_history, label="Validation Accuracy")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    plt.title(f"Learning Curves (Run {run + 1})")
+    plt.title(f"Learning Curves (Run {run})")
     plt.legend()
-    plt.savefig(f"learning_curves_run{run + 1}.png")
+    plt.savefig(f"learning_curves_run{run}.png")
     plt.show()
 
 

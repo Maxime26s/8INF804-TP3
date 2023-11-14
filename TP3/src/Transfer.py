@@ -12,6 +12,7 @@ from Utils import setup_data_loaders, initialize_logging, plot_learning_curves
 
 
 def initialize_vgg16_model(device):
+    logging.info("Loading VGG16 pre-trained model")
     weights = models.VGG16_Weights.DEFAULT
     model = models.vgg16(weights=weights).to(device)
     for param in model.parameters():
