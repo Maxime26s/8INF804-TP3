@@ -114,6 +114,31 @@ def check_label_distribution(loader):
     print("Label distribution:", label_distribution)
 
 
+def initialize_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        filename="training_log.log",
+        filemode="w",
+    )
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    console.setFormatter(formatter)
+    logging.getLogger("").addHandler(console)
+
+
+def plot_learning_curves(train_acc_history, val_acc_history, run):
+    plt.plot(train_acc_history, label="Train Accuracy")
+    plt.plot(val_acc_history, label="Validation Accuracy")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.title(f"Learning Curves (Run {run + 1})")
+    plt.legend()
+    plt.savefig(f"learning_curves_run{run + 1}.png")
+    plt.show()
+
+
 if __name__ == "__main__":
     batch_size = 64
     num_workers = 12

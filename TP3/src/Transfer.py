@@ -8,7 +8,73 @@ import matplotlib.pyplot as plt
 import numpy as np
 import logging
 
-from Utils import setup_data_loaders
+from Utils import setup_data_loaders, initialize_logging, plot_learning_curves
+
+
+def initialize_vgg16_model(device):
+    weights = models.VGG16_Weights.DEFAULT
+    model = models.vgg16(weights=weights).to(device)
+    for param in model.parameters():
+        param.requires_grad = False
+    model.classifier[6] = nn.Linear(4096, 14)  # 14 classes
+    return model.to(device)
+
+
+def train_epoch(model, train_loader, criterion, optimizer, device, train_size):
+    model.train()
+    running_loss = 0.0
+    running_corrects = 0
+
+    for inputs, labels in train_loader:
+        inputs = inputs.to(device)
+        labels = labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        _, preds = torch.max(outputs, 1)
+        running_loss += loss.item() * inputs.size(0)
+        running_corrects += torch.sum(preds == labels.data)
+
+    return running_corrects.double() / train_size
+
+
+def validate_epoch(model, val_loader, device, val_size):
+    model.eval()
+    running_corrects = 0
+
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            running_corrects += torch.sum(preds == labels.data)
+
+    return running_corrects.double() / val_size
+
+
+def test_model(model, test_loader, device, class_names):
+    all_preds = []
+    all_labels = []
+    model.eval()
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            all_preds.extend(preds.view(-1).tolist())
+            all_labels.extend(labels.view(-1).tolist())
+
+    kappa = cohen_kappa_score(all_labels, all_preds)
+    classification_report_str = classification_report(
+        all_labels, all_preds, target_names=class_names
+    )
+
+    return kappa, classification_report_str
 
 
 # Function to train and evaluate the model
@@ -31,78 +97,24 @@ def train_and_evaluate_model(
 
     for epoch in range(num_epochs):
         logging.info(f"Epoch {epoch + 1}/{num_epochs} - Training Phase Start")
-        model.train()  # Set model to training mode
-        running_loss = 0.0
-        running_corrects = 0
-
-        # Training loop
-        for inputs, labels in train_loader:
-            inputs = inputs.to(device)
-            labels = labels.to(device)
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-            _, preds = torch.max(outputs, 1)
-            running_loss += loss.item() * inputs.size(0)
-            running_corrects += torch.sum(preds == labels.data)
-
-        # Calculate training accuracy
-        epoch_acc = running_corrects.double() / train_size
-        train_acc_history.append(epoch_acc.item())
+        train_epoch_acc = train_epoch(
+            model, train_loader, criterion, optimizer, device, train_size
+        )
+        train_acc_history.append(train_epoch_acc.item())
         logging.info(
             f"Epoch {epoch + 1}/{num_epochs} - Training Phase End - Accuracy: {epoch_acc:.4f}"
         )
 
-        # Validation loop
         logging.info(f"Epoch {epoch + 1}/{num_epochs} - Validation Phase Start")
-        model.eval()
-        val_running_corrects = 0
-        with torch.no_grad():
-            for inputs, labels in val_loader:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-                outputs = model(inputs)
-                _, preds = torch.max(outputs, 1)
-                val_running_corrects += torch.sum(preds == labels.data)
-
-        val_epoch_acc = val_running_corrects.double() / val_size
+        val_epoch_acc = validate_epoch(model, val_loader, device, val_size)
         val_acc_history.append(val_epoch_acc.item())
         logging.info(
             f"Epoch {epoch + 1}/{num_epochs} - Validation Phase End - Accuracy: {val_epoch_acc:.4f}"
         )
 
     logging.info("Starting Kappa Score Evaluation and Classification Report Generation")
-    # Test loop for Kappa and classification report
-    all_preds = []
-    all_labels = []
-    model.eval()
-    with torch.no_grad():
-        for inputs, labels in test_loader:
-            inputs = inputs.to(device)
-            labels = labels.to(device)
-            outputs = model(inputs)
-            _, preds = torch.max(outputs, 1)
-            all_preds.extend(preds.view(-1).tolist())
-            all_labels.extend(labels.view(-1).tolist())
-
-    # Assuming all_preds and all_labels are your model's predictions and true labels
-    unique_labels, counts = np.unique(all_labels, return_counts=True)
-    print("Distribution of classes in the test set:", dict(zip(unique_labels, counts)))
-
-    # Confusion Matrix
-    conf_matrix = confusion_matrix(all_labels, all_preds)
-    print("Confusion Matrix:\n", conf_matrix)
-
-    # Checking a few predictions manually
-    for i in range(10):  # Just as an example, check first 10 predictions
-        print(f"True label: {all_labels[i]}, Predicted label: {all_preds[i]}")
-
-    kappa = cohen_kappa_score(all_labels, all_preds)
-    logging.info(f"Kappa score for this run: {kappa:.4f}")
-    classification_report_str = classification_report(
-        all_labels, all_preds, target_names=class_names
+    kappa, classification_report_str = test_model(
+        model, test_loader, device, class_names
     )
     logging.info(f"Classification Report:\n{classification_report_str}")
     return train_acc_history, val_acc_history, kappa
@@ -111,20 +123,7 @@ def train_and_evaluate_model(
 def main():
     plt.ion()  # interactive mode
 
-    # Logging configuration
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        filename="training_log.log",
-        filemode="w",
-    )
-
-    # Adding logging to console
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    console.setFormatter(formatter)
-    logging.getLogger("").addHandler(console)
+    initialize_logging()
 
     # Check for CUDA availability
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -155,12 +154,7 @@ def main():
 
         # Load VGG16 pre-trained model
         logging.info("Loading VGG16 pre-trained model")
-        weights = models.VGG16_Weights.DEFAULT
-        model = models.vgg16(weights=weights).to(device)
-        for param in model.parameters():
-            param.requires_grad = False
-        model.classifier[6] = nn.Linear(4096, 14)  # 14 classes for flower types
-        model = model.to(device)
+        model = initialize_vgg16_model(device)
 
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.classifier.parameters(), lr=0.001)
@@ -181,7 +175,7 @@ def main():
         )
 
         logging.info(f"Training Run {run + 1} - Training and validation completed")
-        logging.info(f"Training Run {run + 1} - Best Kappa Score: {kappa}")
+        logging.info(f"Training Run {run + 1} - Kappa Score: {kappa}")
 
         # Append the history of this run to the overall history
         all_train_acc_histories.append(train_acc_history)
@@ -189,14 +183,7 @@ def main():
         all_kappa_scores.append(kappa)
 
         # Plot learning curves for this run
-        plt.plot(train_acc_history, label="Train Accuracy")
-        plt.plot(val_acc_history, label="Validation Accuracy")
-        plt.xlabel("Epoch")
-        plt.ylabel("Accuracy")
-        plt.title(f"Learning Curves (Run {run + 1})")
-        plt.legend()
-        plt.savefig(f"learning_curves_run{run + 1}.png")
-        plt.show()
+        plot_learning_curves(train_acc_history, val_acc_history, run)
 
         logging.info(
             f"Training Run {run + 1} - Learning curves saved as 'learning_curves_run{run + 1}.png'"
