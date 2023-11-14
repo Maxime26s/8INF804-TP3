@@ -40,6 +40,7 @@ def flatten_image_folder(data_dir):
         for subdir in [train_dir, val_dir]:
             remove_unwanted_files(subdir)
             source_folder = os.path.join(subdir, class_name)
+            remove_unwanted_files(source_folder)
             if os.path.exists(source_folder):
                 for file in os.listdir(source_folder):
                     shutil.move(os.path.join(source_folder, file), class_folder)
