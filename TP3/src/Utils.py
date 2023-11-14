@@ -18,6 +18,16 @@ def remove_unwanted_files(directory):
             os.remove(os.path.join(directory, item))
 
 
+def get_class_names_from_folders(*dirs):
+    class_names = set()
+    for directory in dirs:
+        for item in os.listdir(directory):
+            item_path = os.path.join(directory, item)
+            if os.path.isdir(item_path):
+                class_names.add(item)
+    return class_names
+
+
 def flatten_image_folder(data_dir):
     train_dir = os.path.join(data_dir, "train")
     val_dir = os.path.join(data_dir, "val")
@@ -29,7 +39,7 @@ def flatten_image_folder(data_dir):
     remove_unwanted_files(data_dir)
 
     # Get all class names from the train and val directories
-    class_names = set(os.listdir(train_dir)) | set(os.listdir(val_dir))
+    class_names = get_class_names_from_folders(train_dir, val_dir)
 
     # Create class folders at the root and move images
     for class_name in class_names:
@@ -40,7 +50,6 @@ def flatten_image_folder(data_dir):
         for subdir in [train_dir, val_dir]:
             remove_unwanted_files(subdir)
             source_folder = os.path.join(subdir, class_name)
-            remove_unwanted_files(source_folder)
             if os.path.exists(source_folder):
                 for file in os.listdir(source_folder):
                     shutil.move(os.path.join(source_folder, file), class_folder)
@@ -75,37 +84,25 @@ def setup_data_loaders(data_dir, batch_size, num_workers):
     )
 
     train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=(num_workers // 2),
     )
     val_loader = DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=(num_workers // 4),
     )
     test_loader = DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=(num_workers // 4),
     )
 
     return train_loader, val_loader, test_loader
-
-
-# Assuming train_loader is your DataLoader
-def visualize_sample_images(loader, class_names, num_images=5):
-    dataiter = iter(loader)
-    images, labels = dataiter.next()  # Fetch a batch of images and labels
-
-    plt.figure(figsize=(15, 15))
-    for i in range(num_images):
-        plt.subplot(1, num_images, i + 1)
-        img = (
-            images[i].numpy().transpose((1, 2, 0))
-        )  # Convert image tensor to numpy array
-        img = img * np.array([0.229, 0.224, 0.225]) + np.array(
-            [0.485, 0.456, 0.406]
-        )  # Unnormalize
-        img = np.clip(img, 0, 1)
-        plt.imshow(img)
-        plt.title(class_names[labels[i]])
-        plt.axis("off")
-    plt.show()
 
 
 def check_label_distribution(loader):
@@ -119,7 +116,7 @@ def check_label_distribution(loader):
 
 if __name__ == "__main__":
     batch_size = 64
-    num_workers = 8
+    num_workers = 12
     train_loader, val_loader, test_loader = setup_data_loaders(
         "./images", batch_size, num_workers
     )

@@ -110,6 +110,7 @@ def train_and_evaluate_model(
 
 def main():
     plt.ion()  # interactive mode
+
     # Logging configuration
     logging.basicConfig(
         level=logging.INFO,
@@ -131,9 +132,12 @@ def main():
     logging.info("Using device: " + str(device))
 
     # Data loaders for each set
+    data_dir = "./images"
     batch_size = 64
-    num_workers = 8
-    train_loader, val_loader, test_loader = setup_data_loaders(batch_size, num_workers)
+    num_workers = 12
+    train_loader, val_loader, test_loader = setup_data_loaders(
+        data_dir, batch_size, num_workers
+    )
     train_size = len(train_loader.dataset)
     val_size = len(val_loader.dataset)
     class_names = (
