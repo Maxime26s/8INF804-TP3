@@ -1,10 +1,10 @@
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, random_split
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
-import logging
 import os
 import shutil
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
 
 
 def is_flattened(directory):
@@ -54,7 +54,6 @@ def flatten_image_folder(data_dir):
                 for file in os.listdir(source_folder):
                     shutil.move(os.path.join(source_folder, file), class_folder)
 
-    # Optional: Remove the now-empty train and val directories
     shutil.rmtree(train_dir)
     shutil.rmtree(val_dir)
 
@@ -113,11 +112,11 @@ def check_label_distribution(loader):
     print("Label distribution:", label_distribution)
 
 
-def initialize_logging():
+def initialize_logging(output_dir_path, neural_network):
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
-        filename="training_log.log",
+        filename=f"{output_dir_path}/{neural_network}_training.log",
         filemode="w",
     )
     console = logging.StreamHandler()
@@ -127,15 +126,37 @@ def initialize_logging():
     logging.getLogger("").addHandler(console)
 
 
-def plot_learning_curves(train_acc_history, val_acc_history, run):
+def plot_learning_curves(
+    train_acc_history,
+    val_acc_history,
+    train_loss_history,
+    val_loss_history,
+    run,
+    neural_network,
+    output_dir_path,
+    should_show,
+):
+    # Plotting acc
+    plt.figure()
     plt.plot(train_acc_history, label="Train Accuracy")
     plt.plot(val_acc_history, label="Validation Accuracy")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    plt.title(f"Learning Curves (Run {run})")
+    plt.title(f"Accuracy Curves (Run {run})")
     plt.legend()
-    plt.savefig(f"learning_curves_run{run}.png")
-    plt.show()
+    plt.savefig(f"{output_dir_path}/{neural_network}_accuracy_curves_run{run}.png")
+    if should_show:
+        plt.show()
+
+    # Plotting loss
+    plt.figure()
+    plt.plot(train_loss_history, label="Train Loss")
+    plt.plot(val_loss_history, label="Validation Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title(f"Loss Curves (Run {run})")
+    plt.legend()
+    plt.savefig(f"{output_dir_path}/{neural_network}_loss_curves_run{run}.png")
 
 
 if __name__ == "__main__":
@@ -153,5 +174,3 @@ if __name__ == "__main__":
     print("Type of labels:", labels.dtype)
 
     check_label_distribution(train_loader)
-
-    # visualize_sample_images(train_loader, class_names)
