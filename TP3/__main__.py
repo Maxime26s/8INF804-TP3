@@ -14,6 +14,7 @@ from src.Utils import (
     flatten_image_folder,
 )
 from src.VGG16 import initialize_vgg16_model
+from src.Custom import initialize_custom_model
 from src.Training import train_and_evaluate_model
 
 
@@ -145,16 +146,16 @@ if __name__ == "__main__":
         # Load selected model
         if neural_network_to_use == "vgg16":
             model = initialize_vgg16_model(device)
+            optimizer = optim.Adam(model.classifier.parameters(), lr=learning_rate)
         elif neural_network_to_use == "custom":
-            # model = initialize_custom_model(device)
-            pass
+            model = initialize_custom_model(device)
+            optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         else:
             raise ValueError(
                 f"Neural network {neural_network_to_use} not supported. Supported neural networks: vgg16, custom"
             )
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.classifier.parameters(), lr=learning_rate)
 
         (
             train_acc_history,
@@ -212,9 +213,7 @@ if __name__ == "__main__":
             should_show_images,
         )
 
-        logging.info(
-            f"Training Run {run} - Learning curves saved as 'learning_curves_run{run}.png'"
-        )
+        logging.info(f"Training Run {run} - Learning curves saved")
 
     # After all runs, print the average kappa score
     logging.info(
