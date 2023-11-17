@@ -1,4 +1,4 @@
-# 8INF804 - TP2
+# 8INF804 - TP3
 ## Auteurs
 - Maya Legris (LEGM15600100)
 - Tifenn Le Gourriérec (LEGT08590100)
@@ -38,48 +38,46 @@ Python >= 3.9
 
 ### Arguments
 
-    usage: tp2 [-h] [-o OUTPUT] [-s] [-sc SCALE] input
+    usage: tp3 [-h] [-i INPUT] [-o OUTPUT] [-e EPOCHS] [-b BATCH_SIZE] [-r RUNS] [-l LEARNING_RATE] [-w WORKERS] [-s] {vgg16,custom}
 
-    tp2
+    tp3
 
     positional arguments:
-    input                 input folder name
+    {vgg16,custom}                                      neural network to use
 
     options:
-    -h, --help            show this help message and exit
-    -o, --output OUTPUT   output folder name, default is ./output/
-    -s, --show            show processed images
-    -a, --algorithm ALGORITHM  algorithm to use, default is 'all'
-    -sc, --scale SCALE    scale images, default scale is 1
+    -h, --help                                          show this help message and exit
+    -i INPUT, --input INPUT                             input folder name
+    -o OUTPUT, --output OUTPUT                          output folder name
+    -e EPOCHS, --epochs EPOCHS                          number of epochs to do
+    -b BATCH_SIZE, --batch_size BATCH_SIZE              batch size to use
+    -r RUNS, --runs RUNS                                number of runs to do
+    -l LEARNING_RATE, --learning_rate LEARNING_RATE     learning rate to use
+    -w WORKERS, --workers WORKERS                       number of workers to use
+    -s, --show                                          show learning curve graphs
 
 ### Exemple d'utilisation
 
-- Le dossier d'images doit se trouver à l'emplacement ./images/ et contenir des fichiers au format .png, .jpg ou .jpeg
+- Les images doivent être placées dans le dossier ./images/ et être au format .png, .jpg ou .jpeg.
 
-- À partir de la racine du projet, exécuter la commande suivante:
+- Pour exécuter le programme à partir de la racine du projet, utilisez la commande :
 
-    `python3 tp2 ./images/`
+    `python3 tp3 vgg16 ou python3 tp3 custom`
 
-- Par défaut, les résultats sont enregistrés dans le dossier ./output
+- Les résultats seront enregistrés par défaut dans le dossier ./output.
 
-- Il est aussi possible de spécifier un autre dossier de sortie:
+- Vous pouvez spécifier un autre dossier de sortie avec :
 
-    `python3 tp2 -o ./out ./images/`
+    `python3 tp3 -o ./autre_dossier_sortie vgg16`
 
-- Pour afficher les images traitées, utiliser l'option -s:
+- Pour afficher les graphiques des courbes d'apprentissage, utilisez l'option -s :
 
-    `python3 tp2 -s ./images/`
+    `python3 tp3 -s vgg16`
 
-- Pour sélectionner un algorithme spécifique pour le traitement, utiliser l'option -a suivie du numéro de l'algorithme [1, 4] (par exemple, '1' pour segment_1) :
+- Pour spécifier le dossier d'entrée, le nombre d'epochs, la taille des batchs, le nombre de runs, le taux d'apprentissage et le nombre de threads, utilisez les options correspondantes :
 
-    `python3 tp2 -a 1 ./images/`
+    `python3 tp3 vgg16 -i ./input/ -e 20 -b 32 -r 3 -l 0.0005 -w 8`
 
-- Pour sélectionner tous les algorithmes, utiliser l'option -a de "all" :
+- Par exemple, pour exécuter le réseau de neurones personnalisé avec des paramètres spécifiques :
 
-    `python3 tp2 -a all ./images/`
-
-- Pour changer l'échelle des images, utiliser l'option -sc avec un facteur d'échelle (ex: 0.5 pour réduire de moitié):
-
-    `python3 tp2 -sc 0.5 ./images/`
-
-- Ainsi, les images seront traitées en utilisant l'échelle spécifiée.
+    `python3 tp3 custom -i ./images/ -o ./output/ -e 15 -b 64 -r 5 -l 0.001 -w 12`
